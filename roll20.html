@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Roll20 스타일 매크로 생성기</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0b1020;
+      color: #f7f7ff;
+    }
+    .app {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 16px;
+      min-height: 100vh;
+    }
+    .top-row {
+      display: flex;
+      flex-direction: row;
+      gap: 16px;
+    }
+    .panel {
+      background: rgba(12, 16, 32, 0.95);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 0 24px rgba(0, 0, 0, 0.4);
+    }
+    .panel-top {
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .panel-settings {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1 {
+      font-size: 20px;
+      margin: 0 0 4px;
+    }
+    h2 {
+      font-size: 16px;
+      margin: 12px 0 4px;
+    }
+    label {
+      font-size: 13px;
+      display: block;
+      margin-bottom: 2px;
+      opacity: 0.9;
+    }
+    textarea, input[type="text"], input[type="number"], select {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #32384f;
+      background: #111522;
+      color: #f7f7ff;
+      font-size: 13px;
+      resize: vertical;
+    }
+    textarea {
+      min-height: 72px;
+      max-height: 180px;
+    }
+    input[type="color"] {
+      padding: 0;
+      border-radius: 4px;
+      border: 1px solid #32384f;
+      background: transparent;
+      width: 48px;
+      height: 26px;
+      vertical-align: middle;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .row > div {
+      flex: 1 1 0;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+      font-size: 13px;
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: auto;
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .slider-row input[type="range"] {
+      flex: 1;
+    }
+    button {
+      border-radius: 6px;
+      border: 1px solid #3a4cff;
+      background: #252b5f;
+      color: #f7f7ff;
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: transform 0.05s ease, box-shadow 0.05s ease, background 0.1s;
+      white-space: nowrap;
+    }
+    button:hover {
+      background: #313776;
+      box-shadow: 0 0 10px rgba(80, 120, 255, 0.5);
+    }
+    button:active {
+      transform: translateY(1px);
+      box-shadow: none;
+    }
+    .preset-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .preview-card {
+      background: linear-gradient(135deg, #101529, #050814);
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid #273055;
+    }
+    .preview-header {
+      font-size: 12px;
+      opacity: 0.75;
+      margin-bottom: 8px;
+    }
+    .preview-wrapper {
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-start;
+      justify-content: flex-start;
+    }
+    .preview-image {
+      max-width: 220px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      display: none;
+    }
+    .preview-message {
+      font-size: 15px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+    .macro-output {
+      background: #050814;
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid #273055;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      height: 100%;
+    }
+    .macro-output label {
+      margin-bottom: 0;
+    }
+    .macro-output textarea {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      min-height: 120px;
+      flex: 1 1 auto;
+    }
+    .section-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #30395f, transparent);
+      margin: 8px 0;
+      opacity: 0.9;
+    }
+    .tiny-btn {
+      padding: 4px 6px;
+      font-size: 11px;
+    }
+
+    /* 컬러 모달 */
+    .color-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .color-modal.hidden {
+      display: none;
+    }
+    .color-modal-content {
+      background: #101528;
+      border-radius: 12px;
+      padding: 14px 16px;
+      width: min(360px, 90vw);
+      box-shadow: 0 0 24px rgba(0, 0, 0, 0.6);
+      border: 1px solid #323b68;
+    }
+    .color-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .color-modal-header span {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .color-swatch {
+      width: 100%;
+      padding: 12px 0;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      outline: none;
+    }
+    .color-swatch:hover {
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
+    }
+    .color-swatch-label {
+      margin-top: 6px;
+      font-size: 11px;
+      text-align: center;
+      opacity: 0.85;
+    }
+
+    @media (max-width: 900px) {
+      .top-row {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- 상단: 미리보기 + 코드 -->
+    <div class="top-row">
+      <div class="panel panel-top">
+        <h1>Roll20 스타일 미리보기</h1>
+        <div class="preview-card">
+          <div class="preview-header">글자 미리보기</div>
+          <div class="preview-wrapper">
+            <img id="previewImageTop" class="preview-image" alt="preview image top">
+            <div id="previewMessage" class="preview-message">
+              예시 텍스트입니다. 아래 설정을 조절해 스타일을 바꿔 보세요.
+            </div>
+            <img id="previewImageBottom" class="preview-image" alt="preview image bottom">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel panel-top">
+        <h1>매크로 코드</h1>
+        <div class="macro-output">
+          <label for="macroText">Roll20 채팅 매크로 코드</label>
+          <textarea id="macroText" readonly></textarea>
+          <p style="font-size:11px; opacity:0.8; margin-top:0;">
+            예시<br>
+            [깃털 방패](#" style="...여기에 CSS...") 형식으로 출력됩니다.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 하단: 설정 패널 -->
+    <div class="panel panel-settings">
+      <h2>1. 텍스트 입력</h2>
+      <label for="inputText">채팅 내용</label>
+      <textarea id="inputText" placeholder="예: 적의 공격을 피하고 반격한다."></textarea>
+
+      <div class="section-divider"></div>
+
+      <h2>2. 글자 크기</h2>
+      <div class="slider-row">
+        <span style="width:90px;">글자 크기(px)</span>
+        <input type="range" id="fontSizeRange" min="10" max="36" value="18">
+        <span id="fontSizeValue">18px</span>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <h2>3. 색상 · 배경 · 테두리</h2>
+      <div class="row">
+        <div>
+          <label for="fontColor">글자 색</label>
+          <div class="row">
+            <input type="color" id="fontColor" value="#ffffff">
+            <button type="button" class="tiny-btn openColorPicker" data-target="fontColor" data-label="글자 색">팔레트</button>
+          </div>
+        </div>
+        <div>
+          <label for="bgColor">배경 색</label>
+          <div class="row">
+            <input type="color" id="bgColor" value="#14192b">
+            <button type="button" class="tiny-btn openColorPicker" data-target="bgColor" data-label="배경 색">팔레트</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="slider-row">
+        <span style="width:90px;">배경 패딩</span>
+        <input type="range" id="paddingRange" min="0" max="32" value="10">
+        <span id="paddingValue">10px</span>
+      </div>
+
+      <div class="slider-row">
+        <span style="width:90px;">모서리 곡률</span>
+        <input type="range" id="radiusRange" min="0" max="32" value="8">
+        <span id="radiusValue">8px</span>
+      </div>
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="borderToggle" checked>
+        <label for="borderToggle" style="margin:0;">테두리 사용</label>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="borderColor">테두리 색</label>
+          <div class="row">
+            <input type="color" id="borderColor" value="#3a4cff">
+            <button type="button" class="tiny-btn openColorPicker" data-target="borderColor" data-label="테두리 색">팔레트</button>
+          </div>
+        </div>
+        <div>
+          <label for="borderWidth">두께(px)</label>
+          <input type="number" id="borderWidth" value="2" min="0" max="10">
+        </div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <h2>4. 네온 글로우</h2>
+      <div class="checkbox-row">
+        <input type="checkbox" id="neonToggle" checked>
+        <label for="neonToggle" style="margin:0;">네온 글로우 켜기</label>
+      </div>
+      <div class="row">
+        <div>
+          <label for="neonColor">네온 색</label>
+          <div class="row">
+            <input type="color" id="neonColor" value="#4ef2ff">
+            <button type="button" class="tiny-btn openColorPicker" data-target="neonColor" data-label="네온 색">팔레트</button>
+          </div>
+        </div>
+        <div>
+          <label for="neonSize">강도(px)</label>
+          <input type="number" id="neonSize" value="6" min="0" max="24">
+        </div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <h2>5. 그림자 (계단식)</h2>
+      <div class="row">
+        <div>
+          <label for="shadowSteps">계단 수</label>
+          <input type="number" id="shadowSteps" value="3" min="0" max="10">
+        </div>
+        <div>
+          <label for="shadowDistance">간격(px)</label>
+          <input type="number" id="shadowDistance" value="2" min="0" max="20">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label for="shadowAngle">각도(도)</label>
+          <input type="number" id="shadowAngle" value="135" min="0" max="360">
+        </div>
+        <div>
+          <label for="shadowColor">그림자 색</label>
+          <div class="row">
+            <input type="color" id="shadowColor" value="#000000">
+            <button type="button" class="tiny-btn openColorPicker" data-target="shadowColor" data-label="그림자 색">팔레트</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <h2>6. 레이아웃 · 이미지</h2>
+
+      <div class="row">
+        <div>
+          <label for="columnCount">컬럼 개수</label>
+          <select id="columnCount">
+            <option value="1">1 컬럼 (일반)</option>
+            <option value="2">2 컬럼</option>
+            <option value="3">3 컬럼</option>
+          </select>
+        </div>
+        <div>
+          <label for="maxWidth">최대 너비(px)</label>
+          <input type="number" id="maxWidth" value="420" min="0" max="800">
+        </div>
+      </div>
+
+      <label for="imageUrl">이미지 URL (선택)</label>
+      <input type="text" id="imageUrl" placeholder="https:// 예: 아이콘, 일러스트 등">
+
+      <div class="row">
+        <div>
+          <label for="imagePosition">이미지 위치</label>
+          <select id="imagePosition">
+            <option value="top">텍스트 위</option>
+            <option value="bottom">텍스트 아래</option>
+          </select>
+        </div>
+        <div>
+          <label for="imageWidth">이미지 너비(px)</label>
+          <input type="number" id="imageWidth" value="180" min="40" max="600">
+        </div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <h2>7. Roll20 스타일 프리셋</h2>
+      <p style="font-size:11px; opacity:0.85; margin:0 0 4px;">
+        자주 쓰는 스타일을 한 번에 불러올 수 있습니다.
+      </p>
+      <div class="preset-buttons">
+        <button type="button" data-preset="neonAlert">네온 알림</button>
+        <button type="button" data-preset="ooc">OOC 메모</button>
+        <button type="button" data-preset="system">시스템 로그</button>
+      </div>
+
+      <button id="saveCustomPreset" type="button" style="margin-top:6px; width:100%; border-style:dashed;">
+        현재 설정을 커스텀 프리셋으로 저장 (브라우저 로컬)
+      </button>
+
+      <div class="section-divider"></div>
+
+      
+
+      <label for="templateName">템플릿 name (현재는 출력 형식에는 반영 안 됨)</label>
+      <input type="text" id="templateName" placeholder="예: Styled Message">
+    </div>
+  </div>
+
+  <!-- 색상 팔레트 모달 -->
+  <div id="colorModal" class="color-modal hidden">
+    <div class="color-modal-content">
+      <div class="color-modal-header">
+        <span id="colorModalTitle">색 선택</span>
+        <button type="button" id="colorModalClose" class="tiny-btn">닫기</button>
+      </div>
+      <p style="font-size:12px; opacity:0.85; margin:0 0 6px;">
+        원하는 색을 클릭하면 해당 필드에 색상 코드가 자동으로 들어갑니다.
+      </p>
+      <div class="color-grid">
+        <!-- 밝은 계열 -->
+        <button class="color-swatch" data-color="#ffffff" style="background:#ffffff;"></button>
+        <button class="color-swatch" data-color="#e5e7ff" style="background:#e5e7ff;"></button>
+        <button class="color-swatch" data-color="#ffdde1" style="background:#ffdde1;"></button>
+        <button class="color-swatch" data-color="#ffe6b3" style="background:#ffe6b3;"></button>
+        <button class="color-swatch" data-color="#e0ffe5" style="background:#e0ffe5;"></button>
+        <button class="color-swatch" data-color="#e0fbff" style="background:#e0fbff;"></button>
+        <!-- 네온/강렬 -->
+        <button class="color-swatch" data-color="#ff2fd1" style="background:#ff2fd1;"></button>
+        <button class="color-swatch" data-color="#ff4b4b" style="background:#ff4b4b;"></button>
+        <button class="color-swatch" data-color="#ffdd7b" style="background:#ffdd7b;"></button>
+        <button class="color-swatch" data-color="#4ef2ff" style="background:#4ef2ff;"></button>
+        <button class="color-swatch" data-color="#7dffb2" style="background:#7dffb2;"></button>
+        <button class="color-swatch" data-color="#9b5cff" style="background:#9b5cff;"></button>
+        <!-- 어두운 배경용 -->
+        <button class="color-swatch" data-color="#14192b" style="background:#14192b;"></button>
+        <button class="color-swatch" data-color="#202434" style="background:#202434;"></button>
+        <button class="color-swatch" data-color="#402808" style="background:#402808;"></button>
+        <button class="color-swatch" data-color="#1a0120" style="background:#1a0120;"></button>
+        <button class="color-swatch" data-color="#000000" style="background:#000000;"></button>
+        <button class="color-swatch" data-color="#3b0030" style="background:#3b0030;"></button>
+      </div>
+      <div class="color-swatch-label">
+        색상 코드는 Hex 형식(#RRGGBB)으로 필드에 입력됩니다.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 요소 선택
+    const inputText = document.getElementById("inputText");
+    const fontSizeRange = document.getElementById("fontSizeRange");
+    const fontSizeValue = document.getElementById("fontSizeValue");
+
+    const fontColor = document.getElementById("fontColor");
+    const bgColor = document.getElementById("bgColor");
+    const paddingRange = document.getElementById("paddingRange");
+    const paddingValue = document.getElementById("paddingValue");
+    const radiusRange = document.getElementById("radiusRange");
+    const radiusValue = document.getElementById("radiusValue");
+    const borderToggle = document.getElementById("borderToggle");
+    const borderColor = document.getElementById("borderColor");
+    const borderWidth = document.getElementById("borderWidth");
+
+    const neonToggle = document.getElementById("neonToggle");
+    const neonColor = document.getElementById("neonColor");
+    const neonSize = document.getElementById("neonSize");
+
+    const shadowSteps = document.getElementById("shadowSteps");
+    const shadowDistance = document.getElementById("shadowDistance");
+    const shadowAngle = document.getElementById("shadowAngle");
+    const shadowColor = document.getElementById("shadowColor");
+
+    const columnCount = document.getElementById("columnCount");
+    const maxWidth = document.getElementById("maxWidth");
+
+    const imageUrl = document.getElementById("imageUrl");
+    const imagePosition = document.getElementById("imagePosition");
+    const imageWidth = document.getElementById("imageWidth");
+
+    const previewMessage = document.getElementById("previewMessage");
+    const previewImageTop = document.getElementById("previewImageTop");
+    const previewImageBottom = document.getElementById("previewImageBottom");
+    const macroText = document.getElementById("macroText");
+
+    const presetButtons = document.querySelectorAll("button[data-preset]");
+    const saveCustomPresetButton = document.getElementById("saveCustomPreset");
+
+    const macroMode = document.getElementById("macroMode");
+    const templateName = document.getElementById("templateName");
+
+    // 컬러 모달 관련
+    const colorModal = document.getElementById("colorModal");
+    const colorModalTitle = document.getElementById("colorModalTitle");
+    const colorModalClose = document.getElementById("colorModalClose");
+    const colorSwatches = document.querySelectorAll(".color-swatch");
+    const colorPickerButtons = document.querySelectorAll(".openColorPicker");
+    let activeColorTarget = null;
+
+    // 값 표시 슬라이더
+    function syncSliderLabels() {
+      paddingValue.textContent = paddingRange.value + "px";
+      radiusValue.textContent = radiusRange.value + "px";
+      fontSizeValue.textContent = fontSizeRange.value + "px";
+    }
+
+    // Markdown 링크 텍스트 이스케이프 ([텍스트] 안에 들어갈 부분)
+    function escapeMarkdownLinkText(text) {
+      return text
+        .replace(/\\/g, "\\\\")
+        .replace(/\]/g, "\\]");
+    }
+
+    // 스타일 문자열 생성
+    function buildStyleString() {
+      const styleEntries = [];
+
+      const fontSizePx = parseInt(fontSizeRange.value, 10) || 0;
+      if (fontSizePx > 0) {
+        styleEntries.push(["font-size", fontSizePx + "px"]);
+      }
+
+      styleEntries.push(["color", fontColor.value]);
+      if (bgColor.value) {
+        styleEntries.push(["background-color", bgColor.value]);
+      }
+
+      const paddingPx = parseInt(paddingRange.value, 10) || 0;
+      if (paddingPx > 0) {
+        styleEntries.push(["padding", paddingPx + "px"]);
+      }
+
+      const radiusPx = parseInt(radiusRange.value, 10) || 0;
+      if (radiusPx > 0) {
+        styleEntries.push(["border-radius", radiusPx + "px"]);
+      }
+
+      const borderWidthPx = parseInt(borderWidth.value, 10) || 0;
+      if (borderToggle.checked && borderWidthPx > 0) {
+        styleEntries.push(["border", borderWidthPx + "px solid " + borderColor.value]);
+      } else {
+        styleEntries.push(["border", "none"]);
+      }
+
+      const textShadowParts = [];
+
+      if (neonToggle.checked) {
+        const glowSize = parseInt(neonSize.value, 10) || 0;
+        if (glowSize > 0) {
+          textShadowParts.push("0 0 " + glowSize + "px " + neonColor.value);
+          textShadowParts.push("0 0 " + glowSize * 2 + "px " + neonColor.value);
+        }
+      }
+
+      const steps = parseInt(shadowSteps.value, 10) || 0;
+      const dist = parseInt(shadowDistance.value, 10) || 0;
+      const angleDeg = parseInt(shadowAngle.value, 10) || 0;
+      const angleRad = angleDeg * Math.PI / 180;
+      const sColor = shadowColor.value;
+
+      if (steps > 0 && dist > 0) {
+        for (let i = 1; i <= steps; i += 1) {
+          const x = Math.round(Math.cos(angleRad) * dist * i);
+          const y = Math.round(Math.sin(angleRad) * dist * i);
+          textShadowParts.push(x + "px " + y + "px 0 " + sColor);
+        }
+      }
+
+      if (textShadowParts.length > 0) {
+        styleEntries.push(["text-shadow", textShadowParts.join(", ")]);
+      }
+
+      const colCount = parseInt(columnCount.value, 10) || 1;
+      if (colCount > 1) {
+        styleEntries.push(["column-count", colCount.toString()]);
+        styleEntries.push(["column-gap", "12px"]);
+      }
+
+      const maxWidthPx = parseInt(maxWidth.value, 10) || 0;
+      if (maxWidthPx > 0) {
+        styleEntries.push(["max-width", maxWidthPx + "px"]);
+      }
+
+      const styleString = styleEntries
+        .map(function(entry) {
+          return entry[0] + ":" + entry[1];
+        })
+        .join("; ");
+
+      return styleString;
+    }
+
+    // 미리보기 · 매크로 갱신
+    function updatePreviewAndMacro() {
+      syncSliderLabels();
+
+      const text = inputText.value.trim() || "예시 텍스트입니다. 아래 설정을 조절해 스타일을 바꿔 보세요.";
+      const styleString = buildStyleString();
+
+      previewMessage.textContent = text;
+      previewMessage.setAttribute("style", styleString);
+
+      const url = imageUrl.value.trim();
+      const widthPx = parseInt(imageWidth.value, 10) || 0;
+      const showImage = url.length > 0;
+      const position = imagePosition.value;
+
+      if (showImage && widthPx > 0) {
+        if (position === "top") {
+          previewImageTop.src = url;
+          previewImageTop.style.display = "block";
+          previewImageTop.style.width = widthPx + "px";
+          previewImageBottom.style.display = "none";
+        } else {
+          previewImageBottom.src = url;
+          previewImageBottom.style.display = "block";
+          previewImageBottom.style.width = widthPx + "px";
+          previewImageTop.style.display = "none";
+        }
+      } else {
+        previewImageTop.style.display = "none";
+        previewImageBottom.style.display = "none";
+      }
+
+      const linkText = escapeMarkdownLinkText(text);
+      const styleForLink = styleString;
+
+      const macroBody = `[${linkText}](#" style="${styleForLink}" )`;
+
+      macroText.value = macroBody;
+    }
+
+    // 프리셋 정의
+    const presets = {
+      neonAlert: function () {
+        inputText.value = "[ALERT] 강력한 기술이 발동됩니다.";
+        fontSizeRange.value = "20";
+        fontColor.value = "#ffffff";
+        bgColor.value = "#1a0120";
+        paddingRange.value = "12";
+        radiusRange.value = "10";
+        borderToggle.checked = true;
+        borderColor.value = "#ff2fd1";
+        borderWidth.value = "2";
+
+        neonToggle.checked = true;
+        neonColor.value = "#ff2fd1";
+        neonSize.value = "8";
+
+        shadowSteps.value = "4";
+        shadowDistance.value = "2";
+        shadowAngle.value = "135";
+        shadowColor.value = "#3b0030";
+
+        columnCount.value = "1";
+        maxWidth.value = "420";
+
+        imageUrl.value = "";
+        imagePosition.value = "top";
+        imageWidth.value = "180";
+
+        macroMode.value = "em";
+        templateName.value = "Neon Alert";
+      },
+      ooc: function () {
+        inputText.value = "(OOC) 잠시 물 마시고 올게요.";
+        fontSizeRange.value = "16";
+        fontColor.value = "#d0d3ff";
+        bgColor.value = "#202434";
+        paddingRange.value = "8";
+        radiusRange.value = "6";
+        borderToggle.checked = true;
+        borderColor.value = "#4b5475";
+        borderWidth.value = "1";
+
+        neonToggle.checked = false;
+        neonSize.value = "0";
+
+        shadowSteps.value = "0";
+        shadowDistance.value = "0";
+        shadowAngle.value = "135";
+        shadowColor.value = "#000000";
+
+        columnCount.value = "1";
+        maxWidth.value = "360";
+
+        imageUrl.value = "";
+        imagePosition.value = "top";
+        imageWidth.value = "180";
+
+        macroMode.value = "whisper";
+        templateName.value = "OOC Note";
+      },
+      system: function () {
+        inputText.value = "시스템: 라운드가 종료되었습니다.";
+        fontSizeRange.value = "18";
+        fontColor.value = "#ffdd7b";
+        bgColor.value = "#402808";
+        paddingRange.value = "8";
+        radiusRange.value = "4";
+        borderToggle.checked = true;
+        borderColor.value = "#ffdd7b";
+        borderWidth.value = "1";
+
+        neonToggle.checked = false;
+        neonSize.value = "0";
+
+        shadowSteps.value = "2";
+        shadowDistance.value = "1";
+        shadowAngle.value = "90";
+        shadowColor.value = "#000000";
+
+        columnCount.value = "1";
+        maxWidth.value = "420";
+
+        imageUrl.value = "";
+        imagePosition.value = "top";
+        imageWidth.value = "180";
+
+        macroMode.value = "templateDefault";
+        templateName.value = "System Log";
+      }
+    };
+
+    // 커스텀 프리셋 저장 (로컬스토리지)
+    function saveCustomPreset() {
+      const preset = {
+        text: inputText.value,
+        fontSize: fontSizeRange.value,
+        fontColor: fontColor.value,
+        bgColor: bgColor.value,
+        padding: paddingRange.value,
+        radius: radiusRange.value,
+        borderToggle: borderToggle.checked,
+        borderColor: borderColor.value,
+        borderWidth: borderWidth.value,
+        neonToggle: neonToggle.checked,
+        neonColor: neonColor.value,
+        neonSize: neonSize.value,
+        shadowSteps: shadowSteps.value,
+        shadowDistance: shadowDistance.value,
+        shadowAngle: shadowAngle.value,
+        shadowColor: shadowColor.value,
+        columnCount: columnCount.value,
+        maxWidth: maxWidth.value,
+        imageUrl: imageUrl.value,
+        imagePosition: imagePosition.value,
+        imageWidth: imageWidth.value,
+        macroMode: macroMode.value,
+        templateName: templateName.value
+      };
+
+      try {
+        localStorage.setItem("roll20StyleCustomPreset", JSON.stringify(preset));
+        saveCustomPresetButton.textContent = "커스텀 프리셋 저장 완료 (이 브라우저에 보존)";
+        setTimeout(function () {
+          saveCustomPresetButton.textContent = "현재 설정을 커스텀 프리셋으로 저장 (브라우저 로컬)";
+        }, 1800);
+      } catch (e) {
+        console.error("프리셋 저장 실패", e);
+        saveCustomPresetButton.textContent = "저장 실패 (로컬스토리지 제한)";
+        setTimeout(function () {
+          saveCustomPresetButton.textContent = "현재 설정을 커스텀 프리셋으로 저장 (브라우저 로컬)";
+        }, 2000);
+      }
+    }
+
+    function loadCustomPresetIfExists() {
+      try {
+        const raw = localStorage.getItem("roll20StyleCustomPreset");
+        if (!raw) return;
+        const p = JSON.parse(raw);
+        inputText.value = p.text || "";
+        fontSizeRange.value = p.fontSize || fontSizeRange.value;
+        fontColor.value = p.fontColor || fontColor.value;
+        bgColor.value = p.bgColor || bgColor.value;
+        paddingRange.value = p.padding || paddingRange.value;
+        radiusRange.value = p.radius || radiusRange.value;
+        borderToggle.checked = typeof p.borderToggle === "boolean" ? p.borderToggle : borderToggle.checked;
+        borderColor.value = p.borderColor || borderColor.value;
+        borderWidth.value = p.borderWidth || borderWidth.value;
+        neonToggle.checked = typeof p.neonToggle === "boolean" ? p.neonToggle : neonToggle.checked;
+        neonColor.value = p.neonColor || neonColor.value;
+        neonSize.value = p.neonSize || neonSize.value;
+        shadowSteps.value = p.shadowSteps || shadowSteps.value;
+        shadowDistance.value = p.shadowDistance || shadowDistance.value;
+        shadowAngle.value = p.shadowAngle || shadowAngle.value;
+        shadowColor.value = p.shadowColor || shadowColor.value;
+        columnCount.value = p.columnCount || columnCount.value;
+        maxWidth.value = p.maxWidth || maxWidth.value;
+        imageUrl.value = p.imageUrl || "";
+        imagePosition.value = p.imagePosition || imagePosition.value;
+        imageWidth.value = p.imageWidth || imageWidth.value;
+        macroMode.value = p.macroMode || macroMode.value;
+        templateName.value = p.templateName || "";
+      } catch (e) {
+        console.error("커스텀 프리셋 로드 실패", e);
+      }
+    }
+
+    const inputsToWatch = [
+      inputText,
+      fontSizeRange,
+      fontColor,
+      bgColor,
+      paddingRange,
+      radiusRange,
+      borderToggle,
+      borderColor,
+      borderWidth,
+      neonToggle,
+      neonColor,
+      neonSize,
+      shadowSteps,
+      shadowDistance,
+      shadowAngle,
+      shadowColor,
+      columnCount,
+      maxWidth,
+      imageUrl,
+      imagePosition,
+      imageWidth,
+      macroMode,
+      templateName
+    ];
+
+    inputsToWatch.forEach(function (el) {
+      el.addEventListener("input", updatePreviewAndMacro);
+      el.addEventListener("change", updatePreviewAndMacro);
+    });
+
+    presetButtons.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const key = btn.getAttribute("data-preset");
+        const fn = presets[key];
+        if (typeof fn === "function") {
+          fn();
+          updatePreviewAndMacro();
+        }
+      });
+    });
+
+    saveCustomPresetButton.addEventListener("click", function () {
+      saveCustomPreset();
+    });
+
+    colorPickerButtons.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        activeColorTarget = btn.getAttribute("data-target");
+        const label = btn.getAttribute("data-label") || "색 선택";
+        colorModalTitle.textContent = label + " 선택";
+        colorModal.classList.remove("hidden");
+      });
+    });
+
+    colorSwatches.forEach(function (swatch) {
+      swatch.addEventListener("click", function () {
+        if (!activeColorTarget) return;
+        const color = swatch.getAttribute("data-color");
+        const targetInput = document.getElementById(activeColorTarget);
+        if (targetInput) {
+          targetInput.value = color;
+        }
+        colorModal.classList.add("hidden");
+        activeColorTarget = null;
+        updatePreviewAndMacro();
+      });
+    });
+
+    colorModalClose.addEventListener("click", function () {
+      colorModal.classList.add("hidden");
+      activeColorTarget = null;
+    });
+
+    colorModal.addEventListener("click", function (e) {
+      if (e.target === colorModal) {
+        colorModal.classList.add("hidden");
+        activeColorTarget = null;
+      }
+    });
+
+    loadCustomPresetIfExists();
+    syncSliderLabels();
+    updatePreviewAndMacro();
+  </script>
+</body>
+</html>
