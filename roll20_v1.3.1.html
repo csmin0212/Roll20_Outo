@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roll20 스타일 매크로 생성기 (V3 - 기능추가)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+   
+  <style>
+    :root {
+      --bg-dark-900: #111827;
+      --bg-dark-800: #1f2937;
+      --bg-dark-700: #374151;
+      --border-dark: #4b5563;
+      --text-light-100: #f3f4f6;
+      --text-light-200: #e5e7eb;
+      --text-light-300: #d1d5db;
+      --text-light-400: #9ca3af;
+      --brand-500: #6366f1;
+      --brand-600: #4f46e5;
+      --brand-700: #4338ca;
+    }
+
+    * { box-sizing: border-box; }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--bg-dark-900);
+      color: var(--text-light-200);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .app {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      padding: 24px;
+      min-height: 100vh;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    .top-row {
+      display: flex;
+      flex-direction: row;
+      gap: 24px;
+    }
+    .panel {
+      background: var(--bg-dark-800);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+      border: 1px solid var(--bg-dark-700);
+    }
+    .panel-top {
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .panel-settings {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* === 탭 (모드 전환) === */
+    .mode-tabs {
+      display: flex;
+      gap: 8px;
+      background-color: var(--bg-dark-900);
+      padding: 6px;
+      border-radius: 12px;
+      align-self: flex-start;
+      margin-bottom: -16px; /* 패널과 겹치게 */
+      z-index: 10;
+      border: 1px solid var(--bg-dark-700);
+    }
+    .mode-tabs button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Noto Sans KR', sans-serif;
+      background-color: transparent;
+      color: var(--text-light-300);
+      cursor: pointer;
+      transition: background-color 0.2s, color 0.2s;
+    }
+    .mode-tabs button:hover {
+      background-color: var(--bg-dark-700);
+    }
+    .mode-tabs button.active {
+      background-color: var(--brand-600);
+      color: #ffffff;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    }
+    /* 패널 상단 패딩을 탭과 겹치지 않게 조절 */
+    .panel-settings {
+      padding-top: 48px; 
+    }
+    /* 모드 컨테이너 */
+    #singleModeContainer, #multiModeContainer {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    #multiModeContainer {
+      display: none; /* 기본 숨김 */
+    }
+
+    /* === 타이포그래피 === */
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0 0 8px;
+      color: #ffffff;
+    }
+    h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 12px 0 8px;
+      color: var(--text-light-100);
+      border-bottom: 1px solid var(--bg-dark-700);
+      padding-bottom: 8px;
+    }
+    /* 다중 빌더용 소제목 */
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 8px 0;
+      color: var(--text-light-200);
+    }
+    label {
+      font-size: 14px;
+      display: block;
+      margin-bottom: 6px;
+      color: var(--text-light-300);
+      font-weight: 500;
+    }
+    p {
+      font-size: 13px;
+      opacity: 0.85;
+      margin: 0 0 4px;
+    }
+
+    /* === 입력창 (Inputs) === */
+    textarea, input[type="text"], input[type="number"], select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-dark);
+      background: var(--bg-dark-700);
+      color: var(--text-light-100);
+      font-size: 14px;
+      resize: vertical;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    textarea:focus, input[type="text"]:focus, input[type="number"]:focus, select:focus {
+      border-color: var(--brand-500);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+      outline: none;
+    }
+    textarea { min-height: 80px; max-height: 200px; }
+
+    input[type="color"] {
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--border-dark);
+      background: var(--bg-dark-700);
+      width: 100%;
+      height: 42px;
+      vertical-align: middle;
+      cursor: pointer;
+    }
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
+
+    .row { display: flex; gap: 12px; align-items: center; }
+    .row > div { flex: 1 1 0; min-width: 0; }
+    
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+      font-size: 14px;
+      background: var(--bg-dark-700);
+      padding: 8px 12px;
+      border-radius: 8px;
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--brand-500);
+    }
+    .checkbox-row label { margin: 0; font-weight: 400; }
+
+    /* === 슬라이더 (Range Input) === */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+    }
+    .slider-row span { flex-shrink: 0; }
+    input[type="range"] {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 8px;
+      background: var(--bg-dark-700);
+      border-radius: 4px;
+      outline: none;
+      padding: 0;
+      border: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: var(--brand-500);
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid #ffffff;
+      margin-top: -5px;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      background: var(--brand-500);
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid #ffffff;
+    }
+    #fontSizeValue, #paddingValue, #radiusValue {
+      width: 40px;
+      text-align: right;
+      color: var(--text-light-400);
+    }
+
+    /* === 버튼 (Button) === */
+    button {
+      border-radius: 8px;
+      border: none;
+      background: var(--brand-600);
+      color: #ffffff;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Noto Sans KR', sans-serif;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+    button:hover { background: var(--brand-700); }
+    button:active { transform: translateY(1px); }
+    
+    .preset-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+    button[data-preset] { background-color: var(--bg-dark-700); font-weight: 500; }
+    button[data-preset]:hover { background-color: var(--border-dark); }
+
+    .tiny-btn {
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 500;
+      background-color: var(--border-dark);
+      width: 70px;
+    }
+    .tiny-btn:hover { background-color: #525b6a; }
+    
+    #saveCustomPreset {
+      background-color: transparent;
+      border: 2px dashed var(--brand-600);
+      color: var(--brand-500);
+      padding: 10px 16px;
+      width: 100%;
+      transition: background-color 0.2s, color 0.2s;
+    }
+    #saveCustomPreset:hover {
+      background-color: rgba(99, 102, 241, 0.1);
+      color: #818cf8;
+    }
+
+    /* === 미리보기 (Preview) === */
+    .preview-card {
+      background: var(--bg-dark-900);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--bg-dark-700);
+    }
+    .preview-header {
+      font-size: 13px;
+      margin-bottom: 12px;
+      color: var(--text-light-400);
+    }
+    .preview-wrapper {
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-start;
+      justify-content: flex-start;
+      background: #0b1020;
+      padding: 16px;
+      border-radius: 8px;
+    }
+    .preview-image {
+      max-width: 220px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      display: none;
+    }
+    .preview-message {
+      font-size: 16px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+    /* 다중 빌더 미리보기용 */
+    #multiPreviewBox {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+    }
+    .preview-block-text {
+      word-break: break-word;
+    }
+    .preview-block-image {
+      max-width: 100%;
+      border-radius: 4px;
+      /* 미리보기에서는 이미지가 보이도록 설정 */
+      min-height: 20px;
+    }
+    .preview-block-hr {
+      border: 0;
+      height: 1px;
+      background-color: #fff;
+      margin: 8px 0;
+    }
+    .preview-block-spacer {
+      display: block;
+    }
+
+
+    /* === 매크로 코드 출력 (Output) === */
+    .macro-output {
+      background: var(--bg-dark-900);
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid var(--bg-dark-700);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 100%;
+    }
+    
+    /* 출력 헤더 (토글 + 라벨) */
+    .macro-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+    }
+    .macro-header label { margin-bottom: 0; font-weight: 600; font-size: 14px; }
+    
+    /* 토글 스위치 스타일 */
+    .toggle-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-dark-800);
+        padding: 4px 8px;
+        border-radius: 20px;
+        border: 1px solid var(--bg-dark-700);
+    }
+    .toggle-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-light-400);
+        cursor: pointer;
+    }
+    .toggle-label.active {
+        color: #ffffff;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+    }
+    .switch input { 
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #4b5563;
+      transition: .4s;
+      border-radius: 20px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: var(--brand-600);
+    }
+    input:checked + .slider:before {
+      transform: translateX(16px);
+    }
+
+    .macro-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 4px;
+    }
+    #copyBtn {
+        flex: 1;
+        background-color: var(--bg-dark-700);
+        border: 1px solid var(--border-dark);
+        font-size: 13px;
+        padding: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+    #copyBtn:hover {
+        background-color: var(--bg-dark-800);
+        border-color: var(--brand-500);
+    }
+
+    .macro-output textarea {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 13px;
+      min-height: 120px;
+      flex: 1 1 auto;
+      background: #0b1020;
+      border-color: var(--bg-dark-700);
+    }
+    .macro-output p { font-size: 12px; opacity: 0.7; }
+
+    hr.section-divider {
+      border: 0;
+      height: 1px;
+      background-color: var(--bg-dark-700);
+      margin: 24px 0;
+    }
+
+    /* === 컬러 모달 (Color Modal) === */
+    .color-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .color-modal.hidden { display: none; }
+    .color-modal-content {
+      background: var(--bg-dark-800);
+      border-radius: 16px;
+      padding: 20px 24px;
+      width: min(400px, 90vw);
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+      border: 1px solid var(--border-dark);
+    }
+    .color-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .color-modal-header span { font-size: 16px; font-weight: 600; color: #ffffff; }
+    .color-modal-header .tiny-btn { background-color: var(--border-dark); }
+    .color-modal-content p { font-size: 13px; margin-bottom: 12px; }
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .color-swatch {
+      width: 100%;
+      padding: 0;
+      height: 40px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      outline: none;
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    .color-swatch:hover {
+      border-color: var(--brand-500);
+      box-shadow: 0 0 0 3px var(--brand-500);
+    }
+    .color-swatch-label {
+      margin-top: 12px;
+      font-size: 12px;
+      text-align: center;
+      opacity: 0.85;
+      color: var(--text-light-400);
+    }
+
+    /* === 다중 빌더 (Multi Builder) === */
+    #multiModeContainer .row {
+      align-items: flex-end; /* 라벨과 인풋 정렬 */
+    }
+    .builder-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 12px;
+      background: var(--bg-dark-900);
+      border-radius: 12px;
+    }
+    .builder-controls button {
+      background-color: var(--bg-dark-700);
+      font-weight: 500;
+    }
+    .builder-controls button:hover {
+      background-color: var(--border-dark);
+    }
+
+    #blockList {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 50px;
+      background: var(--bg-dark-900);
+      padding: 12px;
+      border-radius: 12px;
+    }
+    .block-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--bg-dark-800);
+      border: 1px solid var(--border-dark);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+    .block-item:hover {
+      background-color: var(--bg-dark-700);
+    }
+    .block-item.selected {
+      border-color: var(--brand-500);
+      background-color: #2a3447;
+      box-shadow: 0 0 0 2px var(--brand-500);
+    }
+    .block-item-label {
+      font-weight: 600;
+    }
+    .block-item-label .type {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--text-light-400);
+      margin-right: 8px;
+      background: var(--bg-dark-900);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .block-item-controls button {
+      font-size: 12px;
+      padding: 4px 8px;
+      background: var(--border-dark);
+      margin-left: 6px;
+    }
+    .block-item-controls button:hover {
+      background: #525b6a;
+    }
+    .block-item-controls button.remove {
+      background: #7f1d1d; /* Red 800 */
+    }
+    .block-item-controls button.remove:hover {
+      background: #991b1b; /* Red 700 */
+    }
+
+    #blockSettings {
+      padding: 16px;
+      background: var(--bg-dark-900);
+      border-radius: 12px;
+      min-height: 100px;
+    }
+    #blockSettings .row {
+      align-items: center; /* 블록 설정은 중앙 정렬 */
+    }
+    #blockSettings fieldset {
+      border: 1px solid var(--bg-dark-700);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+    }
+    #blockSettings legend {
+      font-weight: 600;
+      padding: 0 8px;
+      color: var(--text-light-200);
+    }
+
+    /* === 드래그 앤 드롭 스타일 === */
+    .block-item.dragging {
+      opacity: 0.5;
+      background: var(--bg-dark-700);
+    }
+    .block-item.drag-over {
+      /* 드롭 위치를 알려주는 시각적 큐 */
+      border-top: 2px solid var(--brand-500) !important;
+      transform: scale(1.02);
+    }
+
+
+    /* === 반응형 레이아웃 === */
+    @media (max-width: 900px) {
+      .top-row { flex-direction: column; }
+      .app { padding: 16px; gap: 16px; }
+      .panel { padding: 16px; }
+      .panel-settings { padding-top: 40px; }
+      .mode-tabs { margin-bottom: -10px; }
+    }
+    @media (max-width: 600px) {
+      .row { flex-direction: column; align-items: stretch; }
+      input[type="color"] { width: 100%; }
+      .slider-row { flex-wrap: wrap; }
+      .slider-row span:first-child { width: 100%; margin-bottom: 4px; }
+      .mode-tabs { align-self: stretch; }
+      .mode-tabs button { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- 상단: 미리보기 + 코드 -->
+    <div class="top-row">
+      <div class="panel panel-top">
+        <h1>Roll20 스타일 미리보기</h1>
+        <div class="preview-card">
+          <div class="preview-header">글자 미리보기</div>
+          <div class="preview-wrapper">
+            <!-- 다중 빌더 미리보기 영역 -->
+            <div id="multiPreviewBox"></div>
+            
+            <!-- 단일 모드 미리보기 (기존) -->
+            <img id="previewImageTop" class="preview-image" alt="preview image top">
+            <div id="previewMessage" class="preview-message">
+              예시 텍스트입니다. 아래 설정을 조절해 스타일을 바꿔 보세요.
+            </div>
+            <img id="previewImageBottom" class="preview-image" alt="preview image bottom">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel panel-top">
+        <h1>매크로 코드</h1>
+        <div class="macro-output">
+          <div class="macro-header">
+            <label for="macroText">Roll20 코드</label>
+            <!-- GM / PL 토글 스위치 -->
+            <div class="toggle-wrapper">
+              <span class="toggle-label" id="plLabel">PL</span>
+              <label class="switch">
+                <input type="checkbox" id="gmToggle" checked>
+                <span class="slider round"></span>
+              </label>
+              <span class="toggle-label active" id="gmLabel">GM</span>
+            </div>
+          </div>
+          
+          <textarea id="macroText" readonly></textarea>
+          
+          <div class="macro-actions">
+            <button type="button" id="copyBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              매크로 복사
+            </button>
+          </div>
+
+          <p id="macroHelpText">
+            예시: /em [깃털 방패](#" style="...CSS...")
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 모드 탭 -->
+    <div class="mode-tabs">
+      <button type="button" id="tabSingle" class="active">단일 스타일</button>
+      <button type="button" id="tabMulti">다중 빌더</button>
+    </div>
+
+    <!-- 하단: 설정 패널 -->
+    <div class="panel panel-settings">
+      
+      <!-- ============================ -->
+      <!--      단일 스타일 모드        -->
+      <!-- ============================ -->
+      <div id="singleModeContainer">
+        <h2>1. 텍스트 입력</h2>
+        <label for="inputText">채팅 내용</label>
+        <textarea id="inputText" placeholder="예: 적의 공격을 피하고 반격한다."></textarea>
+
+        <hr class="section-divider">
+
+        <h2>2. 글자 스타일</h2>
+        <div class="slider-row">
+          <span>글자 크기(px)</span>
+          <input type="range" id="fontSizeRange" min="10" max="36" value="18">
+          <span id="fontSizeValue">18px</span>
+        </div>
+        
+        <div class="row">
+          <div>
+            <label for="fontColor">글자 색</label>
+            <div class="row">
+              <input type="color" id="fontColor" value="#ffffff">
+              <button type="button" class="tiny-btn openColorPicker" data-target="fontColor" data-label="글자 색">팔레트</button>
+            </div>
+          </div>
+          <div>
+            <label for="textAlign">텍스트 정렬</label>
+            <select id="textAlign">
+              <option value="left">좌측</option>
+              <option value="center" selected>중앙</option>
+              <option value="right">우측</option>
+            </select>
+          </div>
+        </div>
+
+        <hr class="section-divider">
+
+        <h2>3. 배경 · 테두리</h2>
+        <div class="checkbox-row">
+          <input type="checkbox" id="bgTransparent">
+          <label for="bgTransparent">배경 투명하게</label>
+        </div>
+        <div class="row">
+          <div>
+            <label for="bgColor">배경 색</label>
+            <div class="row">
+              <input type="color" id="bgColor" value="#14192b">
+              <button type="button" class="tiny-btn openColorPicker" data-target="bgColor" data-label="배경 색">팔레트</button>
+            </div>
+          </div>
+          <div>
+            <label for="paddingRange">배경 패딩</label>
+            <div class="slider-row">
+              <input type="range" id="paddingRange" min="0" max="32" value="10">
+              <span id="paddingValue">10px</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="slider-row">
+          <span>모서리 곡률</span>
+          <input type="range" id="radiusRange" min="0" max="32" value="8">
+          <span id="radiusValue">8px</span>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="borderToggle" checked>
+          <label for="borderToggle">테두리 사용</label>
+        </div>
+        <div class="row">
+          <div>
+            <label for="borderColor">테두리 색</label>
+            <div class="row">
+              <input type="color" id="borderColor" value="#3a4cff">
+              <button type="button" class="tiny-btn openColorPicker" data-target="borderColor" data-label="테두리 색">팔레트</button>
+            </div>
+          </div>
+          <div>
+            <label for="borderWidth">두께(px)</label>
+            <input type="number" id="borderWidth" value="2" min="0" max="10">
+          </div>
+        </div>
+
+        <hr class="section-divider">
+
+        <h2>4. 효과</h2>
+        <div class="checkbox-row">
+          <input type="checkbox" id="neonToggle" checked>
+          <label for="neonToggle">네온 글로우 켜기</label>
+        </div>
+        <div class="row">
+          <div>
+            <label for="neonColor">네온 색</label>
+            <div class="row">
+              <input type="color" id="neonColor" value="#4ef2ff">
+              <button type="button" class="tiny-btn openColorPicker" data-target="neonColor" data-label="네온 색">팔레트</button>
+            </div>
+          </div>
+          <div>
+            <label for="neonSize">강도(px)</label>
+            <input type="number" id="neonSize" value="6" min="0" max="24">
+          </div>
+        </div>
+
+        <div style="margin-top: 12px;">
+          <label>그림자 (계단식)</label>
+        </div>
+        <div class="row">
+          <div>
+            <label for="shadowSteps">계단 수</label>
+            <input type="number" id="shadowSteps" value="3" min="0" max="10">
+          </div>
+          <div>
+            <label for="shadowDistance">간격(px)</label>
+            <input type="number" id="shadowDistance" value="2" min="0" max="20">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="shadowAngle">각도(도)</label>
+            <input type="number" id="shadowAngle" value="135" min="0" max="360">
+          </div>
+          <div>
+            <label for="shadowColor">그림자 색</label>
+            <div class="row">
+              <input type="color" id="shadowColor" value="#000000">
+              <button type="button" class="tiny-btn openColorPicker" data-target="shadowColor" data-label="그림자 색">팔레트</button>
+            </div>
+          </div>
+        </div>
+
+        <hr class="section-divider">
+
+        <h2>5. 레이아웃 · 이미지</h2>
+        <div class="row">
+          <div>
+            <label for="columnCount">컬럼 개수</label>
+            <select id="columnCount">
+              <option value="1">1 컬럼 (일반)</option>
+              <option value="2">2 컬럼</option>
+              <option value="3">3 컬럼</option>
+            </select>
+          </div>
+          <div>
+            <label for="maxWidth">최대 너비(px)</label>
+            <input type="number" id="maxWidth" value="420" min="0" max="800">
+          </div>
+        </div>
+
+        <label for="imageUrl">이미지 URL (선택)</label>
+        <input type="text" id="imageUrl" placeholder="https:// 예: 아이콘, 일러스트 등">
+
+        <div class="row">
+          <div>
+            <label for="imagePosition">이미지 위치</label>
+            <select id="imagePosition">
+              <option value="top">텍스트 위</option>
+              <option value="bottom">텍스트 아래</option>
+            </select>
+          </div>
+          <div>
+            <label for="imageWidth">이미지 너비(px, 미리보기 전용)</label>
+            <input type="number" id="imageWidth" value="180" min="40" max="600">
+          </div>
+        </div>
+        
+        <hr class="section-divider">
+
+        <h2>6. Roll20 스타일 프리셋</h2>
+        <p>자주 쓰는 스타일을 한 번에 불러올 수 있습니다.</p>
+        <div class="preset-buttons">
+          <button type="button" data-preset="neonAlert">네온 알림</button>
+          <button type="button" data-preset="ooc">OOC 메모</button>
+          <button type="button" data-preset="system">시스템 로그</button>
+        </div>
+        <button id="saveCustomPreset" type="button" style="margin-top:16px;">
+          현재 설정을 커스텀 프리셋으로 저장 (브라우저 로컬)
+        </button>
+        
+        <!-- 기존 코드 호환용 (숨김) -->
+        <select id="macroMode" style="display: none;">
+          <option value="em"></option>
+        </select>
+        <input type="text" id="templateName" style="display: none;">
+      </div>
+
+      <!-- ============================ -->
+      <!--       다중 빌더 모드         -->
+      <!-- ============================ -->
+      <div id="multiModeContainer">
+        
+        <h2>1. 전역 스타일 (박스 전체)</h2>
+        <p>모든 블록을 감싸는 박스의 스타일입니다.</p>
+        <div class="checkbox-row">
+          <input type="checkbox" id="multiBgTransparent">
+          <label for="multiBgTransparent">배경 투명하게</label>
+        </div>
+        <div class="row">
+          <div>
+            <label for="multiBgColor">배경 색</label>
+            <div class="row">
+              <input type="color" id="multiBgColor" value="#15162C">
+              <button type="button" class="tiny-btn openColorPicker" data-target="multiBgColor" data-label="전역 배경 색">팔레트</button>
+            </div>
+          </div>
+          <div>
+            <label for="multiBorderColor">테두리 색</label>
+            <div class="row">
+              <input type="color" id="multiBorderColor" value="#808080">
+              <button type="button" class="tiny-btn openColorPicker" data-target="multiBorderColor" data-label="전역 테두리 색">팔레트</button>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="multiBorderWidth">테두리 두께(px)</label>
+            <input type="number" id="multiBorderWidth" value="1" min="0" max="10">
+          </div>
+          <div>
+            <label for="multiBorderRadius">모서리 곡률(px)</label>
+            <input type="number" id="multiBorderRadius" value="15" min="0" max="50">
+          </div>
+        </div>
+        <h3>박스 그림자 (예: `-4px 4px 0 lightgrey`)</h3>
+        <div class="row">
+          <div>
+            <label for="multiShadowX">X-offset</label>
+            <input type="number" id="multiShadowX" value="-4" min="-20" max="20">
+          </div>
+          <div>
+            <label for="multiShadowY">Y-offset</label>
+            <input type="number" id="multiShadowY" value="4" min="-20" max="20">
+          </div>
+          <div>
+            <label for="multiShadowBlur">Blur</label>
+            <input type="number" id="multiShadowBlur" value="0" min="0" max="20">
+          </div>
+          <div>
+            <label for="multiShadowColor">그림자 색</label>
+            <input type="color" id="multiShadowColor" value="#d3d3d3">
+          </div>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="multiShadowToggle" checked>
+          <label for="multiShadowToggle">박스 그림자 사용</label>
+        </div>
+
+        <hr class="section-divider">
+
+        <h2>2. 블록 빌더</h2>
+        <h3>블록 추가</h3>
+        <div class="builder-controls">
+          <button id="addTextBtn">텍스트 추가</button>
+          <button id="addImageBtn">이미지 추가 (내부 스타일 적용)</button>
+          <button id="addHrBtn">구분선 추가</button>
+          <button id="addSpacerBtn">간격 추가</button>
+        </div>
+        
+        <h3>블록 목록 (클릭하여 수정)</h3>
+        <div id="blockList">
+          <!-- 블록 아이템이 여기에 동적으로 추가됩니다 -->
+        </div>
+
+        <hr class="section-divider">
+
+        <h2>3. 블록 설정</h2>
+        <div id="blockSettings">
+          <p style="text-align: center; color: var(--text-light-400);">수정할 블록을 목록에서 선택하세요.</p>
+          <!-- 블록 설정 UI가 여기에 동적으로 추가됩니다 -->
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 색상 팔레트 모달 (공용) -->
+  <div id="colorModal" class="color-modal hidden">
+    <div class="color-modal-content">
+      <div class="color-modal-header">
+        <span id="colorModalTitle">색 선택</span>
+        <button type="button" id="colorModalClose" class="tiny-btn">닫기</button>
+      </div>
+      <p>원하는 색을 클릭하면 해당 필드에 색상 코드가 자동으로 들어갑니다.</p>
+      <div class="color-grid">
+        <button class="color-swatch" data-color="#ffffff" style="background:#ffffff;"></button>
+        <button class="color-swatch" data-color="#e5e7ff" style="background:#e5e7ff;"></button>
+        <button class="color-swatch" data-color="#ffdde1" style="background:#ffdde1;"></button>
+        <button class="color-swatch" data-color="#ffe6b3" style="background:#ffe6b3;"></button>
+        <button class="color-swatch" data-color="#e0ffe5" style="background:#e0ffe5;"></button>
+        <button class="color-swatch" data-color="#e0fbff" style="background:#e0fbff;"></button>
+        <button class="color-swatch" data-color="#ff2fd1" style="background:#ff2fd1;"></button>
+        <button class="color-swatch" data-color="#ff4b4b" style="background:#ff4b4b;"></button>
+        <button class="color-swatch" data-color="#ffdd7b" style="background:#ffdd7b;"></button>
+        <button class="color-swatch" data-color="#4ef2ff" style="background:#4ef2ff;"></button>
+        <button class="color-swatch" data-color="#7dffb2" style="background:#7dffb2;"></button>
+        <button class="color-swatch" data-color="#9b5cff" style="background:#9b5cff;"></button>
+        <button class="color-swatch" data-color="#14192b" style="background:#14192b;"></button>
+        <button class="color-swatch" data-color="#202434" style="background:#202434;"></button>
+        <button class="color-swatch" data-color="#402808" style="background:#402808;"></button>
+        <button class="color-swatch" data-color="#1a0120" style="background:#1a0120;"></button>
+        <button class="color-swatch" data-color="#15162C" style="background:#15162C;"></button>
+        <button class="color-swatch" data-color="#000000" style="background:#000000;"></button>
+      </div>
+      <div class="color-swatch-label">
+        색상 코드는 Hex 형식(#RRGGBB)으로 필드에 입력됩니다.
+      </div>
+    </div>
+  </div>
+
+  
+  <script>
+    // --- 전역 상태 ---
+    let currentMode = 'single'; // 'single' or 'multi'
+    let multiBlocks = [];
+    let selectedBlockId = null;
+    let activeColorTarget = null;
+    let draggedBlockId = null; // 드래그 앤 드롭용
+
+    // --- DOM 요소 캐싱 (공용) ---
+    const macroText = document.getElementById("macroText");
+    const macroHelpText = document.getElementById("macroHelpText");
+    const colorModal = document.getElementById("colorModal");
+    const colorModalTitle = document.getElementById("colorModalTitle");
+    const colorModalClose = document.getElementById("colorModalClose");
+    const colorSwatches = document.querySelectorAll(".color-swatch");
+    const colorPickerButtons = document.querySelectorAll(".openColorPicker");
+    
+    // GM 토글 및 복사 버튼 DOM
+    const gmToggle = document.getElementById("gmToggle");
+    const gmLabel = document.getElementById("gmLabel");
+    const plLabel = document.getElementById("plLabel");
+    const copyBtn = document.getElementById("copyBtn");
+
+    // --- 미리보기 DOM ---
+    const multiPreviewBox = document.getElementById("multiPreviewBox");
+    const previewMessage = document.getElementById("previewMessage");
+    const previewImageTop = document.getElementById("previewImageTop");
+    const previewImageBottom = document.getElementById("previewImageBottom");
+
+    // --- 탭 모드 ---
+    const tabSingle = document.getElementById("tabSingle");
+    const tabMulti = document.getElementById("tabMulti");
+    const singleModeContainer = document.getElementById("singleModeContainer");
+    const multiModeContainer = document.getElementById("multiModeContainer");
+
+    // --- 단일 모드 DOM ---
+    const singleInputs = {
+      inputText: document.getElementById("inputText"),
+      fontSizeRange: document.getElementById("fontSizeRange"),
+      fontSizeValue: document.getElementById("fontSizeValue"),
+      fontColor: document.getElementById("fontColor"),
+      textAlign: document.getElementById("textAlign"),
+      bgTransparent: document.getElementById("bgTransparent"),
+      bgColor: document.getElementById("bgColor"),
+      paddingRange: document.getElementById("paddingRange"),
+      paddingValue: document.getElementById("paddingValue"),
+      radiusRange: document.getElementById("radiusRange"),
+      radiusValue: document.getElementById("radiusValue"),
+      borderToggle: document.getElementById("borderToggle"),
+      borderColor: document.getElementById("borderColor"),
+      borderWidth: document.getElementById("borderWidth"),
+      neonToggle: document.getElementById("neonToggle"),
+      neonColor: document.getElementById("neonColor"),
+      neonSize: document.getElementById("neonSize"),
+      shadowSteps: document.getElementById("shadowSteps"),
+      shadowDistance: document.getElementById("shadowDistance"),
+      shadowAngle: document.getElementById("shadowAngle"),
+      shadowColor: document.getElementById("shadowColor"),
+      columnCount: document.getElementById("columnCount"),
+      maxWidth: document.getElementById("maxWidth"),
+      imageUrl: document.getElementById("imageUrl"),
+      imagePosition: document.getElementById("imagePosition"),
+      imageWidth: document.getElementById("imageWidth"),
+      presetButtons: document.querySelectorAll("button[data-preset]"),
+      saveCustomPresetButton: document.getElementById("saveCustomPreset"),
+      macroMode: document.getElementById("macroMode"),
+      templateName: document.getElementById("templateName")
+    };
+
+    // --- 다중 빌더 DOM ---
+    const multiInputs = {
+      // 전역
+      bgTransparent: document.getElementById("multiBgTransparent"),
+      bgColor: document.getElementById("multiBgColor"),
+      borderColor: document.getElementById("multiBorderColor"),
+      borderWidth: document.getElementById("multiBorderWidth"),
+      borderRadius: document.getElementById("multiBorderRadius"),
+      shadowX: document.getElementById("multiShadowX"),
+      shadowY: document.getElementById("multiShadowY"),
+      shadowBlur: document.getElementById("multiShadowBlur"),
+      shadowColor: document.getElementById("multiShadowColor"),
+      shadowToggle: document.getElementById("multiShadowToggle"),
+      // 컨트롤
+      addTextBtn: document.getElementById("addTextBtn"),
+      addImageBtn: document.getElementById("addImageBtn"),
+      addHrBtn: document.getElementById("addHrBtn"),
+      addSpacerBtn: document.getElementById("addSpacerBtn"),
+      blockList: document.getElementById("blockList"),
+      blockSettings: document.getElementById("blockSettings"),
+    };
+
+    // --- 유틸리티 ---
+    function escapeMarkdownLinkText(text) {
+      if (!text) return " "; // 빈 텍스트는 공백으로
+      return text.replace(/\\/g, "\\\\").replace(/\]/g, "\\]").replace(/\[/g, "\\[");
+    }
+
+    function generateUUID() {
+      return 'id-' + Date.now().toString(36) + Math.random().toString(36).substring(2);
+    }
+    
+    // --- 공용 이벤트 핸들러 ---
+    
+    // 모드 전환
+    function setMode(mode) {
+      currentMode = mode;
+      if (mode === 'single') {
+        tabSingle.classList.add('active');
+        tabMulti.classList.remove('active');
+        singleModeContainer.style.display = 'flex';
+        multiModeContainer.style.display = 'none';
+        macroHelpText.textContent = '예시: /em [텍스트](#" style="...CSS...") [ ](...URL...)';
+        
+        // 미리보기 전환
+        multiPreviewBox.style.display = 'none';
+        previewMessage.style.display = 'block';
+        // 이미지 표시는 updateSingleMacro에서 제어
+
+      } else {
+        tabSingle.classList.remove('active');
+        tabMulti.classList.add('active');
+        singleModeContainer.style.display = 'none';
+        multiModeContainer.style.display = 'flex';
+        macroHelpText.textContent = '예시: /em [[<a href=](URL)(#"style=...")]]';
+
+        // 미리보기 전환
+        multiPreviewBox.style.display = 'block';
+        previewMessage.style.display = 'none';
+        previewImageTop.style.display = 'none';
+        previewImageBottom.style.display = 'none';
+      }
+      updatePreviewAndMacro();
+    }
+
+    // 메인 업데이트 라우터
+    function updatePreviewAndMacro() {
+      // GM 토글 라벨 스타일 업데이트
+      if (gmToggle.checked) {
+        gmLabel.classList.add('active');
+        plLabel.classList.remove('active');
+      } else {
+        gmLabel.classList.remove('active');
+        plLabel.classList.add('active');
+      }
+
+      if (currentMode === 'single') {
+        updateSingleMacro();
+      } else {
+        updateMultiMacro();
+      }
+    }
+    
+    // GM 토글 리스너
+    gmToggle.addEventListener('change', updatePreviewAndMacro);
+
+    // 복사 버튼 로직
+    copyBtn.addEventListener('click', () => {
+      macroText.select();
+      macroText.setSelectionRange(0, 99999); // 모바일 대응
+
+      try {
+        document.execCommand('copy');
+        const originalText = copyBtn.innerHTML;
+        copyBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> 복사 완료!`;
+        setTimeout(() => {
+          copyBtn.innerHTML = originalText;
+        }, 1500);
+      } catch (err) {
+        alert('복사에 실패했습니다. 수동으로 복사해주세요.');
+      }
+    });
+    
+    // 색상 팔레트
+    function openColorPicker(e) {
+      activeColorTarget = e.currentTarget.getAttribute("data-target");
+      const label = e.currentTarget.getAttribute("data-label") || "색 선택";
+      colorModalTitle.textContent = label + " 선택";
+      colorModal.classList.remove("hidden");
+    }
+    
+    colorPickerButtons.forEach(btn => btn.addEventListener("click", openColorPicker));
+    
+    colorSwatches.forEach(swatch => {
+      swatch.addEventListener("click", () => {
+        if (!activeColorTarget) return;
+        const color = swatch.getAttribute("data-color");
+        const targetInput = document.getElementById(activeColorTarget);
+        if (targetInput) {
+          targetInput.value = color;
+          // 변경 이벤트를 수동으로 발생시켜 즉시 반영
+          targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        colorModal.classList.add("hidden");
+        activeColorTarget = null;
+      });
+    });
+
+    colorModalClose.addEventListener("click", () => {
+      colorModal.classList.add("hidden");
+      activeColorTarget = null;
+    });
+
+    colorModal.addEventListener("click", (e) => {
+      if (e.target === colorModal) {
+        colorModal.classList.add("hidden");
+        activeColorTarget = null;
+      }
+    });
+
+    // ===================================
+    //      단일 스타일 (Single Mode)
+    // ===================================
+
+    function syncSliderLabels() {
+      singleInputs.paddingValue.textContent = singleInputs.paddingRange.value + "px";
+      singleInputs.radiusValue.textContent = singleInputs.radiusRange.value + "px";
+      singleInputs.fontSizeValue.textContent = singleInputs.fontSizeRange.value + "px";
+    }
+
+    function buildSingleStyleString() {
+      const styleEntries = [];
+      const s = singleInputs;
+
+      styleEntries.push(["font-size", s.fontSizeRange.value + "px"]);
+      styleEntries.push(["color", s.fontColor.value]);
+      styleEntries.push(["text-align", s.textAlign.value]);
+
+      if (s.bgTransparent.checked) {
+        styleEntries.push(["background-color", "transparent"]);
+      } else {
+        styleEntries.push(["background-color", s.bgColor.value]);
+      }
+
+      styleEntries.push(["padding", s.paddingRange.value + "px"]);
+      styleEntries.push(["border-radius", s.radiusRange.value + "px"]);
+
+      if (s.borderToggle.checked && parseInt(s.borderWidth.value, 10) > 0) {
+        styleEntries.push(["border", `${s.borderWidth.value}px solid ${s.borderColor.value}`]);
+      } else {
+        styleEntries.push(["border", "none"]);
+      }
+
+      const textShadowParts = [];
+      if (s.neonToggle.checked) {
+        const glowSize = parseInt(s.neonSize.value, 10) || 0;
+        if (glowSize > 0) {
+          textShadowParts.push(`0 0 ${glowSize}px ${s.neonColor.value}`);
+          textShadowParts.push(`0 0 ${glowSize * 2}px ${s.neonColor.value}`);
+        }
+      }
+
+      const steps = parseInt(s.shadowSteps.value, 10) || 0;
+      const dist = parseInt(s.shadowDistance.value, 10) || 0;
+      const angleRad = parseInt(s.shadowAngle.value, 10) * Math.PI / 180;
+      const sColor = s.shadowColor.value;
+
+      if (steps > 0 && dist > 0) {
+        for (let i = 1; i <= steps; i++) {
+          const x = Math.round(Math.cos(angleRad) * dist * i);
+          const y = Math.round(Math.sin(angleRad) * dist * i);
+          textShadowParts.push(`${x}px ${y}px 0 ${sColor}`);
+        }
+      }
+
+      if (textShadowParts.length > 0) {
+        styleEntries.push(["text-shadow", textShadowParts.join(", ")]);
+      }
+
+      if (s.columnCount.value > 1) {
+        styleEntries.push(["column-count", s.columnCount.value.toString()]);
+        styleEntries.push(["column-gap", "12px"]);
+      }
+
+      if (parseInt(s.maxWidth.value, 10) > 0) {
+        styleEntries.push(["max-width", s.maxWidth.value + "px"]);
+      }
+      
+      styleEntries.push(["display", "inline-block"]);
+      styleEntries.push(["width", "100%"]);
+
+      return styleEntries.map(entry => entry.join(":")).join("; ");
+    }
+
+    function updateSingleMacro() {
+      syncSliderLabels();
+      const s = singleInputs;
+
+      const text = s.inputText.value.trim() || "예시 텍스트입니다.";
+      const styleString = buildSingleStyleString();
+
+      // --- 미리보기 업데이트 ---
+      previewMessage.textContent = text;
+      previewMessage.setAttribute("style", styleString.replace(/width:100%/g, '')); // 미리보기에서는 width 100% 제거
+
+      const url = s.imageUrl.value.trim();
+      const widthPx = parseInt(s.imageWidth.value, 10) || 0;
+      const showImage = url.length > 0;
+      const position = s.imagePosition.value;
+
+      previewImageTop.style.display = "none";
+      previewImageBottom.style.display = "none";
+      if (showImage && widthPx > 0) {
+        const imgEl = (position === "top") ? previewImageTop : previewImageBottom;
+        imgEl.src = url;
+        imgEl.style.display = "block";
+        imgEl.style.width = widthPx + "px";
+      }
+
+      // --- 매크로 코드 생성 ---
+      const linkText = escapeMarkdownLinkText(text);
+      const styleForLink = styleString;
+      
+      const textPart = `[${linkText}](#"style="${styleForLink}")`;
+      let imagePart = "";
+      if (url) {
+        imagePart = ` [ ](${url})`; 
+      }
+      
+      const prefix = gmToggle.checked ? "/em " : "";
+      
+      let finalCode = "";
+      if (position === 'top') {
+        finalCode = imagePart + " " + textPart;
+      } else {
+        finalCode = textPart + " " + imagePart;
+      }
+
+      macroText.value = prefix + finalCode.trim();
+    }
+
+    // --- 단일 모드 프리셋 ---
+    const presets = {
+      neonAlert: () => {
+        const s = singleInputs;
+        s.inputText.value = "[ALERT] 강력한 기술이 발동됩니다.";
+        s.fontSizeRange.value = "20";
+        s.fontColor.value = "#ffffff";
+        s.textAlign.value = "center";
+        s.bgTransparent.checked = false;
+        s.bgColor.value = "#1a0120";
+        s.paddingRange.value = "12";
+        s.radiusRange.value = "10";
+        s.borderToggle.checked = true;
+        s.borderColor.value = "#ff2fd1";
+        s.borderWidth.value = "2";
+        s.neonToggle.checked = true;
+        s.neonColor.value = "#ff2fd1";
+        s.neonSize.value = "8";
+        s.shadowSteps.value = "4";
+        s.shadowDistance.value = "2";
+        s.shadowAngle.value = "135";
+        s.shadowColor.value = "#3b0030";
+        s.columnCount.value = "1";
+        s.maxWidth.value = "420";
+        s.imageUrl.value = "";
+      },
+      ooc: () => {
+        const s = singleInputs;
+        s.inputText.value = "(OOC) 잠시 물 마시고 올게요.";
+        s.fontSizeRange.value = "16";
+        s.fontColor.value = "#d0d3ff";
+        s.textAlign.value = "left";
+        s.bgTransparent.checked = false;
+        s.bgColor.value = "#202434";
+        s.paddingRange.value = "8";
+        s.radiusRange.value = "6";
+        s.borderToggle.checked = true;
+        s.borderColor.value = "#4b5475";
+        s.borderWidth.value = "1";
+        s.neonToggle.checked = false;
+        s.shadowSteps.value = "0";
+        s.columnCount.value = "1";
+        s.maxWidth.value = "360";
+        s.imageUrl.value = "";
+      },
+      system: () => {
+        const s = singleInputs;
+        s.inputText.value = "시스템: 라운드가 종료되었습니다.";
+        s.fontSizeRange.value = "18";
+        s.fontColor.value = "#ffdd7b";
+        s.textAlign.value = "center";
+        s.bgTransparent.checked = false;
+        s.bgColor.value = "#402808";
+        s.paddingRange.value = "8";
+        s.radiusRange.value = "4";
+        s.borderToggle.checked = true;
+        s.borderColor.value = "#ffdd7b";
+        s.borderWidth.value = "1";
+        s.neonToggle.checked = false;
+        s.shadowSteps.value = "2";
+        s.shadowDistance.value = "1";
+        s.shadowAngle.value = "90";
+        s.shadowColor.value = "#000000";
+        s.columnCount.value = "1";
+        s.maxWidth.value = "420";
+        s.imageUrl.value = "";
+      }
+    };
+    
+    // 프리셋 버튼
+    singleInputs.presetButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const key = btn.getAttribute("data-preset");
+        if (presets[key]) {
+          presets[key]();
+          updatePreviewAndMacro();
+        }
+      });
+    });
+
+    // 커스텀 프리셋 (단일 모드 전용)
+    function saveCustomPreset() {
+      const s = singleInputs;
+      const preset = {
+        text: s.inputText.value,
+        fontSize: s.fontSizeRange.value,
+        fontColor: s.fontColor.value,
+        textAlign: s.textAlign.value,
+        bgTransparent: s.bgTransparent.checked,
+        bgColor: s.bgColor.value,
+        padding: s.paddingRange.value,
+        radius: s.radiusRange.value,
+        borderToggle: s.borderToggle.checked,
+        borderColor: s.borderColor.value,
+        borderWidth: s.borderWidth.value,
+        neonToggle: s.neonToggle.checked,
+        neonColor: s.neonColor.value,
+        neonSize: s.neonSize.value,
+        shadowSteps: s.shadowSteps.value,
+        shadowDistance: s.shadowDistance.value,
+        shadowAngle: s.shadowAngle.value,
+        shadowColor: s.shadowColor.value,
+        columnCount: s.columnCount.value,
+        maxWidth: s.maxWidth.value,
+        imageUrl: s.imageUrl.value,
+        imagePosition: s.imagePosition.value,
+      };
+      try {
+        localStorage.setItem("roll20StyleCustomPreset", JSON.stringify(preset));
+        s.saveCustomPresetButton.textContent = "커스텀 프리셋 저장 완료";
+        setTimeout(() => { s.saveCustomPresetButton.textContent = "현재 설정을 커스텀 프리셋으로 저장 (브라우저 로컬)"; }, 1800);
+      } catch (e) {
+        console.error("프리셋 저장 실패", e);
+        s.saveCustomPresetButton.textContent = "저장 실패";
+      }
+    }
+
+    function loadCustomPresetIfExists() {
+      try {
+        const raw = localStorage.getItem("roll20StyleCustomPreset");
+        if (!raw) return;
+        const p = JSON.parse(raw);
+        const s = singleInputs;
+        s.inputText.value = p.text || "";
+        s.fontSizeRange.value = p.fontSize || "18";
+        s.fontColor.value = p.fontColor || "#ffffff";
+        s.textAlign.value = p.textAlign || "center";
+        s.bgTransparent.checked = p.bgTransparent || false;
+        s.bgColor.value = p.bgColor || "#14192b";
+        s.paddingRange.value = p.padding || "10";
+        s.radiusRange.value = p.radius || "8";
+        s.borderToggle.checked = typeof p.borderToggle === "boolean" ? p.borderToggle : true;
+        s.borderColor.value = p.borderColor || "#3a4cff";
+        s.borderWidth.value = p.borderWidth || "2";
+        s.neonToggle.checked = typeof p.neonToggle === "boolean" ? p.neonToggle : true;
+        s.neonColor.value = p.neonColor || "#4ef2ff";
+        s.neonSize.value = p.neonSize || "6";
+        s.shadowSteps.value = p.shadowSteps || "3";
+        s.shadowDistance.value = p.shadowDistance || "2";
+        s.shadowAngle.value = p.shadowAngle || "135";
+        s.shadowColor.value = p.shadowColor || "#000000";
+        s.columnCount.value = p.columnCount || "1";
+        s.maxWidth.value = p.maxWidth || "420";
+        s.imageUrl.value = p.imageUrl || "";
+        s.imagePosition.value = p.imagePosition || "top";
+      } catch (e) {
+        console.error("커스텀 프리셋 로드 실패", e);
+      }
+    }
+    
+    singleInputs.saveCustomPresetButton.addEventListener("click", saveCustomPreset);
+
+    // 단일 모드 이벤트 리스너
+    Object.values(singleInputs).forEach(el => {
+      if (el && typeof el.addEventListener === 'function' && !el.dataset?.preset) { 
+        el.addEventListener("input", updatePreviewAndMacro);
+        el.addEventListener("change", updatePreviewAndMacro);
+      }
+    });
+
+
+    // ===================================
+    //      다중 빌더 (Multi Mode)
+    // ===================================
+
+    // --- 전역 스타일 객체 가져오기 ---
+    const TEXT_FRAME_STYLE =
+    'background-color:#15162C;' +
+    'border:1px solid #808080;' +
+    'border-radius:15px 15px 0 0;' +
+    'box-shadow:-4px 4px 0px #d3d3d3;' +
+    'display:block;' +
+    'width:100%;' +
+    'text-decoration:none;' +
+    'margin-left:-4px;' +
+    'margin-top:5px;' +
+    'border-bottom:none;' +
+    'padding:0;';
+
+    function getMultiGlobalStyle() {
+      const m = multiInputs;
+      const shadow = m.shadowToggle.checked 
+        ? `${m.shadowX.value}px ${m.shadowY.value}px ${m.shadowBlur.value}px ${m.shadowColor.value}`
+        : 'none';
+      
+      return {
+        backgroundColor: m.bgTransparent.checked ? 'transparent' : m.bgColor.value,
+        border: `${m.borderWidth.value}px solid ${m.borderColor.value}`,
+        borderRadius: `${m.borderRadius.value}px`,
+        boxShadow: shadow,
+        // 기본값
+        display: 'block',
+        width: '100%',
+        textDecoration: 'none',
+        marginLeft: '-4px', 
+        marginTop: '5px', 
+      };
+    }
+    
+    // --- 블록별 스타일 객체 생성 ---
+    function getBlockStyle(block) {
+      const style = {};
+      switch(block.type) {
+        case 'text':
+          style.fontSize = `${block.fontSize}px`;
+          style.color = block.color;
+          style.textAlign = block.align;
+          style.padding = `${block.padding}px 0`;
+
+          // 텍스트 블록은 둥근 모서리 제거
+          style.borderRadius = '0';
+          style.lineHeight = '1.7';
+
+          const shadowParts = [];
+          if (block.neon) {
+            shadowParts.push(`0 0 ${block.neonSize}px ${block.neonColor}`);
+            shadowParts.push(`0 0 ${block.neonSize * 2}px ${block.neonColor}`);
+          }
+          if (block.shadow) {
+            shadowParts.push(`1px 1px 1px ${block.shadowColor}`);
+          }
+          if (shadowParts.length > 0) {
+            style.textShadow = shadowParts.join(', ');
+          }
+          break;
+
+        case 'image':
+          style.display = 'block';
+          style.width = '100%';
+          style.padding = '0';
+          style.fontSize = '1px';
+          style.color = 'transparent';
+          // 이미지 블록은 borderRadius 건들지 않음 → globalStyle 값 그대로 사용
+          break;
+
+        case 'hr':
+          style.fontSize = '12px';
+          style.color = block.color;
+          style.textAlign = 'center';
+          style.padding = '5px 0px';
+
+          // 구분선도 둥근 모서리 제거
+          style.borderRadius = '0';
+          break;
+
+        case 'spacer':
+          style.fontSize = '1px';
+          style.padding = `${block.height / 2}px 0`;
+
+          // spacer 도 카드 안 내용이니까 둥근 모서리 제거
+          style.borderRadius = '0';
+          break;
+      }
+      return style;
+    }
+    
+    // --- 스타일 객체를 문자열로 변환 ---
+    function styleObjToString(styleObj) {
+      return Object.entries(styleObj)
+        .map(([key, value]) => `${key.replace(/([A-Z])/g, '-$1').toLowerCase()}:${value}`)
+        .join('; ');
+    }
+
+    // --- 다중 빌더 업데이트 (메인 - Roll20 트릭 수정됨) ---
+    function updateMultiMacro() {
+      const globalStyle = getMultiGlobalStyle();
+      
+      const macroParts = [];
+      const previewParts = [];
+
+      multiBlocks.forEach((block, index) => {
+        let blockContent = '';
+        const blockStyle = getBlockStyle(block);
+        
+        // 전역 스타일과 개별 블록 스타일 병합
+        let currentGlobalStyle = { ...globalStyle };
+        
+        // 첫 번째 블록
+        if (index === 0) {
+          currentGlobalStyle.marginTop = '5px';
+          currentGlobalStyle.borderRadius = `${globalStyle.borderRadius} ${globalStyle.borderRadius} 0 0`;
+          currentGlobalStyle.borderBottom = 'none';
+        } 
+        // 마지막 블록
+        else if (index === multiBlocks.length - 1) {
+          currentGlobalStyle.borderRadius = `0 0 ${globalStyle.borderRadius} ${globalStyle.borderRadius}`;
+          currentGlobalStyle.borderTop = 'none';
+          currentGlobalStyle.marginTop = '-4px'; 
+        }
+        // 중간 블록
+        else {
+          currentGlobalStyle.borderRadius = '0';
+          currentGlobalStyle.borderTop = 'none';
+          currentGlobalStyle.borderBottom = 'none';
+          currentGlobalStyle.marginTop = '-4px'; 
+        }
+        
+        const currentGlobalStyleString = styleObjToString(currentGlobalStyle);
+        const blockStyleString = styleObjToString(blockStyle);
+
+        const finalStyleString = `${currentGlobalStyleString}; ${blockStyleString}`;
+
+        // --- 미리보기용 HTML 생성 ---
+        const previewStyle = { ...currentGlobalStyle, ...blockStyle };
+        delete previewStyle.width;
+        delete previewStyle.display;
+        delete previewStyle.textDecoration;
+        delete previewStyle.marginLeft;
+        
+        if (index > 0) {
+           previewStyle.marginTop = '-1px'; 
+        }
+        const previewStyleString = styleObjToString(previewStyle);
+
+        let macroPartString = '';
+        let previewHtml = '';
+        
+        switch (block.type) {
+        case 'text':
+            // 텍스트 블록: [내용](#"style="CSS...)
+            blockContent = escapeMarkdownLinkText(block.content);
+            macroPartString = `[${blockContent}](#"style="${finalStyleString}")`;
+            previewHtml = `<div class="preview-block-text" style="${previewStyleString}">${block.content || '&nbsp;'}</div>`;
+            break;
+
+        case 'image':
+            // 이미지 블록: [[<a href=](URL)](#"style="CSS...)
+            // 예시: [[<a href=](https://i.imgur.com/9N2tLoD.png)](#"style="background-color:#15162C; ...)
+            macroPartString = `[[<a href=](${block.url})](#"style="${finalStyleString}")`;
+
+            previewHtml = `<div style="${previewStyleString}; color:inherit; font-size:inherit; line-height:inherit; padding:0;">
+            <img src="${block.url}" style="width:100%; display:block; border-radius:inherit;"
+                onerror="this.style.display='none';">
+            </div>`;
+            break;
+
+        case 'hr':
+            // 구분선: [━━━━━━━━━━](#"style="CSS...)
+            blockContent = '━━━━━━━━━━━━━━━━━';
+            macroPartString = `[${blockContent}](#"style="${finalStyleString}")`;
+            previewHtml = `<div class="preview-block-spacer" style="${previewStyleString}; height:${block.height}px;">━━━━━━━━━━━━━━━━━</div>`;
+            break;
+
+        case 'spacer':
+            // 빈 줄: [ ](#"style="CSS...)
+            blockContent = ' ';
+            macroPartString = `[${blockContent}](#"style="${finalStyleString}")`;
+            previewHtml = `<div style="${previewStyleString}"></div>`;
+            break;
+        }
+        
+        macroParts.push(macroPartString);
+        previewParts.push(previewHtml);
+      });
+
+        // --- 최종 코드/미리보기 업데이트 ---
+        const prefix = gmToggle.checked ? "/em " : "";
+
+        if (macroParts.length > 0) {
+        // 각 블록이 이미 [ ](...), [[<a href=](...)](#"style="...) 형태이므로
+        // 추가로 [[ ]]로 감싸지 않는다.
+        macroText.value = `${prefix}${macroParts.join('')}`;
+        } else {
+        macroText.value = '';
+        }
+      
+      // 미리보기 업데이트
+      multiPreviewBox.innerHTML = previewParts.join('');
+      multiPreviewBox.style.backgroundColor = 'transparent'; 
+      multiPreviewBox.style.border = 'none';
+      multiPreviewBox.style.boxShadow = 'none';
+    }
+
+    // --- 블록 목록 UI 렌더링 ---
+    function renderBlockList() {
+      multiInputs.blockList.innerHTML = '';
+      if (multiBlocks.length === 0) {
+        multiInputs.blockList.innerHTML = '<p style="text-align: center; color: var(--text-light-400);">블록을 추가하세요.</p>';
+        return;
+      }
+      
+      multiBlocks.forEach(block => {
+        const item = document.createElement('div');
+        item.className = 'block-item';
+        item.dataset.id = block.id;
+        if (block.id === selectedBlockId) {
+          item.classList.add('selected');
+        }
+        
+        item.setAttribute('draggable', 'true');
+        
+        let label = '';
+        switch(block.type) {
+          case 'text': label = `<span class="type">텍스트</span> ${block.content.substring(0, 20) || '(내용 없음)'}...`; break;
+          case 'image': label = `<span class="type">이미지</span> ${block.url.substring(0, 20) || '(URL 없음)'}...`; break;
+          case 'hr': label = `<span class="type">구분선</span> (색상: ${block.color})`; break;
+          case 'spacer': label = `<span class="type">간격</span> (${block.height}px)`; break;
+        }
+        
+        item.innerHTML = `
+          <span class="block-item-label">${label}</span>
+          <span class="block-item-controls">
+            <button type="button" class="remove" data-id="${block.id}">제거</button>
+          </span>
+        `;
+        
+        item.addEventListener('click', (e) => {
+          if (e.target.classList.contains('remove')) {
+            e.stopPropagation();
+            removeBlock(block.id);
+          } else {
+            selectBlock(block.id);
+          }
+        });
+        
+        multiInputs.blockList.appendChild(item);
+      });
+    }
+
+    // --- 블록 설정 UI 렌더링 ---
+    function renderBlockSettings(blockId) {
+      const block = multiBlocks.find(b => b.id === blockId);
+      const m = multiInputs;
+      m.blockSettings.innerHTML = '';
+      if (!block) {
+        m.blockSettings.innerHTML = '<p style="text-align: center; color: var(--text-light-400);">수정할 블록을 목록에서 선택하세요.</p>';
+        return;
+      }
+
+      let html = '';
+      
+      if (block.type === 'text') {
+        html = `
+          <h3>텍스트 블록 설정</h3>
+          <label for="b_content_${block.id}">내용</label>
+          <textarea id="b_content_${block.id}" rows="3">${block.content}</textarea>
+          
+          <div class="row">
+            <div>
+              <label for="b_fontSize_${block.id}">크기(px)</label>
+              <input type="number" id="b_fontSize_${block.id}" value="${block.fontSize}" min="10" max="40">
+            </div>
+            <div>
+              <label for="b_color_${block.id}">색상</label>
+              <input type="color" id="b_color_${block.id}" value="${block.color}">
+            </div>
+            <div>
+              <label for="b_align_${block.id}">정렬</label>
+              <select id="b_align_${block.id}">
+                <option value="left" ${block.align === 'left' ? 'selected' : ''}>좌측</option>
+                <option value="center" ${block.align === 'center' ? 'selected' : ''}>중앙</option>
+                <option value="right" ${block.align === 'right' ? 'selected' : ''}>우측</option>
+              </select>
+            </div>
+            <div>
+              <label for="b_padding_${block.id}">상하 패딩(px)</label>
+              <input type="number" id="b_padding_${block.id}" value="${block.padding}" min="0" max="50">
+            </div>
+          </div>
+          
+          <fieldset>
+            <legend>효과</legend>
+            <div class="checkbox-row">
+              <input type="checkbox" id="b_neon_${block.id}" ${block.neon ? 'checked' : ''}>
+              <label for="b_neon_${block.id}">네온 글로우</label>
+            </div>
+            <div class="row">
+              <div>
+                <label for="b_neonColor_${block.id}">네온 색</label>
+                <input type="color" id="b_neonColor_${block.id}" value="${block.neonColor}">
+              </div>
+              <div>
+                <label for="b_neonSize_${block.id}">강도(px)</label>
+                <input type="number" id="b_neonSize_${block.id}" value="${block.neonSize}" min="1" max="20">
+              </div>
+            </div>
+            <div class="checkbox-row" style="margin-top: 8px;">
+              <input type="checkbox" id="b_shadow_${block.id}" ${block.shadow ? 'checked' : ''}>
+              <label for="b_shadow_${block.id}">기본 그림자</label>
+            </div>
+            <div class="row">
+              <div>
+                <label for="b_shadowColor_${block.id}">그림자 색</label>
+                <input type="color" id="b_shadowColor_${block.id}" value="${block.shadowColor}">
+              </div>
+            </div>
+          </fieldset>
+        `;
+      } 
+      else if (block.type === 'image') {
+        html = `
+          <h3>이미지 블록 설정</h3>
+          <p>Roll20 "Link Trick" 방식을 사용합니다. (<code>[[&lt;a href=](url)...]]</code>)</p>
+          <label for="b_url_${block.id}">이미지 URL</label>
+          <input type="text" id="b_url_${block.id}" value="${block.url}" placeholder="https://...">
+        `;
+      }
+      else if (block.type === 'hr') {
+        html = `
+          <h3>구분선 블록 설정</h3>
+          <label for="b_color_${block.id}">선 색상</label>
+          <input type="color" id="b_color_${block.id}" value="${block.color}">
+        `;
+      }
+      else if (block.type === 'spacer') {
+         html = `
+          <h3>간격 블록 설정</h3>
+          <label for="b_height_${block.id}">높이(px)</label>
+          <input type="number" id="b_height_${block.id}" value="${block.height}" min="1" max="100">
+        `;
+      }
+      
+      m.blockSettings.innerHTML = html;
+      
+      m.blockSettings.querySelectorAll('input, textarea, select').forEach(el => {
+        el.addEventListener('input', (e) => {
+          const key = e.target.id.split('_')[1];
+          const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+          
+          const blockToUpdate = multiBlocks.find(b => b.id === selectedBlockId);
+          if (blockToUpdate) {
+            blockToUpdate[key] = value;
+            updateMultiMacro();
+            
+            if (key === 'content' || key === 'url') {
+              renderBlockList();
+            }
+          }
+        });
+      });
+    }
+
+    // --- 블록 컨트롤 함수 ---
+
+    function selectBlock(blockId) {
+      selectedBlockId = blockId;
+      renderBlockList();
+      renderBlockSettings(blockId);
+    }
+
+    function removeBlock(blockId) {
+      multiBlocks = multiBlocks.filter(b => b.id !== blockId);
+      if (selectedBlockId === blockId) {
+        selectedBlockId = null;
+        renderBlockSettings(null);
+      }
+      renderBlockList();
+      updateMultiMacro();
+    }
+
+    function addBlock(type) {
+      let newBlock;
+      switch(type) {
+        case 'text':
+          newBlock = { id: generateUUID(), type: 'text', content: '새 텍스트', fontSize: 16, color: '#ffffff', align: 'center', padding: 10, neon: false, neonColor: '#4ef2ff', neonSize: 6, shadow: false, shadowColor: '#000000' };
+          break;
+        case 'image':
+          newBlock = { id: generateUUID(), type: 'image', url: 'https://placehold.co/400x200/15162C/808080?text=Image', width: 400, height: 200, align: 'center' };
+          break;
+        case 'hr':
+          newBlock = { id: generateUUID(), type: 'hr', color: '#808080' };
+          break;
+        case 'spacer':
+          newBlock = { id: generateUUID(), type: 'spacer', height: 10 };
+          break;
+      }
+      multiBlocks.push(newBlock);
+      selectBlock(newBlock.id); 
+      updateMultiMacro();
+    }
+    
+    // --- 다중 빌더 이벤트 리스너 ---
+    multiInputs.addTextBtn.addEventListener('click', () => addBlock('text'));
+    multiInputs.addImageBtn.addEventListener('click', () => addBlock('image'));
+    multiInputs.addHrBtn.addEventListener('click', () => addBlock('hr'));
+    multiInputs.addSpacerBtn.addEventListener('click', () => addBlock('spacer'));
+
+    // 전역 스타일 변경 리스너
+    [
+      multiInputs.bgTransparent, multiInputs.bgColor, multiInputs.borderColor,
+      multiInputs.borderWidth, multiInputs.borderRadius, multiInputs.shadowX,
+      multiInputs.shadowY, multiInputs.shadowBlur, multiInputs.shadowColor,
+      multiInputs.shadowToggle
+    ].forEach(el => {
+      el.addEventListener('input', updateMultiMacro);
+    });
+    
+
+    // --- 블록 목록 드래그 앤 드롭 이벤트 ---
+    multiInputs.blockList.addEventListener('dragstart', e => {
+      if (e.target.classList.contains('block-item')) {
+        draggedBlockId = e.target.dataset.id;
+        e.dataTransfer.effectAllowed = 'move';
+        setTimeout(() => e.target.classList.add('dragging'), 0);
+      }
+    });
+    
+    multiInputs.blockList.addEventListener('dragend', e => {
+      if (draggedBlockId) {
+        const draggingEl = document.querySelector(`.block-item[data-id="${draggedBlockId}"]`);
+        if (draggingEl) {
+          draggingEl.classList.remove('dragging');
+        }
+      }
+      document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+      draggedBlockId = null;
+    });
+
+    multiInputs.blockList.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      
+      const targetItem = e.target.closest('.block-item');
+      if (targetItem && targetItem.dataset.id !== draggedBlockId) {
+        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        targetItem.classList.add('drag-over');
+      }
+    });
+    
+    multiInputs.blockList.addEventListener('dragleave', e => {
+      if (e.target.classList.contains('block-item')) {
+        e.target.classList.remove('drag-over');
+      }
+    });
+
+    multiInputs.blockList.addEventListener('drop', e => {
+      e.preventDefault();
+      if (!draggedBlockId) return;
+      
+      const targetItem = e.target.closest('.block-item');
+      document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+      
+      if (targetItem && targetItem.dataset.id !== draggedBlockId) {
+        const draggedIndex = multiBlocks.findIndex(b => b.id === draggedBlockId);
+        const targetIndex = multiBlocks.findIndex(b => b.id === targetItem.dataset.id);
+        
+        if (draggedIndex === -1 || targetIndex === -1) return;
+
+        const [draggedItem] = multiBlocks.splice(draggedIndex, 1);
+        multiBlocks.splice(targetIndex, 0, draggedItem);
+        
+        renderBlockList();
+        updateMultiMacro();
+      }
+      
+      draggedBlockId = null;
+    });
+
+
+    // --- 초기화 ---
+    tabSingle.addEventListener('click', () => setMode('single'));
+    tabMulti.addEventListener('click', () => setMode('multi'));
+    
+    loadCustomPresetIfExists();
+    setMode('single'); 
+    
+  </script>
+</body>
+</html>
